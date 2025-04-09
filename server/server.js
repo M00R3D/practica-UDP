@@ -1,4 +1,4 @@
-// servidor_udp.js
+// server/server.js
 // Isaias Salgado Castillo
 // Job Moore Garay
 // IDS 8vo TV Sistemas Distribuidos DASC UABCS

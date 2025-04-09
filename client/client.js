@@ -1,3 +1,7 @@
+// client/client.js
+// Isaias Salgado Castillo
+// Job Moore Garay
+// IDS 8vo TV Sistemas Distribuidos DASC UABCS
 const dgram = require('dgram');
 const readline = require('readline');
 
