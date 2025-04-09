@@ -10,13 +10,34 @@ const server = dgram.createSocket('udp4');
 
 function getLocalIP() {
     const interfaces = os.networkInterfaces();
-    for (let iface in interfaces) {
-        for (let i of interfaces[iface]) {
-            if (i.family === 'IPv4' && !i.internal) return i.address;
+    let preferida = null;
+
+    for (let name in interfaces) {
+        for (let i of interfaces[name]) {
+            if (i.family === 'IPv4' && !i.internal) {
+                // Evitar VirtualBox y similares
+                if (!name.toLowerCase().includes('virtual') &&
+                    !name.toLowerCase().includes('loopback') &&
+                    !name.toLowerCase().includes('hamachi') &&
+                    !name.toLowerCase().includes('vmware')) {
+
+                    // Si tiene una IP tipo 192.168.x.x, es muy probablemente la correcta
+                    if (i.address.startsWith('192.168.')) {
+                        return i.address;
+                    }
+
+                    // Si aún no hemos guardado ninguna otra
+                    if (!preferida) {
+                        preferida = i.address;
+                    }
+                }
+            }
         }
     }
-    return 'localhost';
+
+    return preferida || 'localhost';
 }
+
 
 server.on('listening', () => {
     const address = server.address();
