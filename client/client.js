@@ -11,6 +11,7 @@ const client = dgram.createSocket('udp4');
 const SERVER_PORT = 5051;
 let saturando = false;
 let saturarInterval;
+let mensajesPerdidos = 0; // Contador de mensajes perdidos
 
 rl.question('Ingresa tu nombre de usuario: ', (nombreUsuario) => {
     rl.question('Ingresa la IP del servidor: ', (ip) => {
@@ -27,6 +28,7 @@ rl.question('Ingresa tu nombre de usuario: ', (nombreUsuario) => {
                 if (mensaje.toLowerCase() === '/saturar') {
                     if (!saturando) {
                         saturando = true;
+                        mensajesPerdidos = 0; // Reiniciar el contador de mensajes perdidos
                         console.log("Saturando... Se enviarán muchos mensajes rápidamente.");
                         // Inicia el envío de mensajes con intervalos
                         saturarInterval = setInterval(() => {
@@ -39,43 +41,41 @@ rl.question('Ingresa tu nombre de usuario: ', (nombreUsuario) => {
                                 });
                             } else {
                                 console.log("Mensaje perdido.");
+                                mensajesPerdidos++;
+                                // Si el número de mensajes perdidos alcanza 10, detener la saturación
+                                if (mensajesPerdidos >= 10) {
+                                    clearInterval(saturarInterval);
+                                    saturando = false;
+                                    console.log("Saturación detenida. Se alcanzaron 10 mensajes perdidos.");
+                                }
                             }
                         }, 100); // Enviar un mensaje cada 100ms
                     } else {
                         console.log("La saturación ya está activa.");
                     }
-                    // Continuar preguntando por nuevos mensajes
-                    return enviarMensaje();
+                } else if (mensaje.toLowerCase() === '/detener' && saturando) {
+                    // Detener la saturación si el cliente lo solicita
+                    clearInterval(saturarInterval);
+                    saturando = false;
+                    console.log("Saturación detenida.");
+                } else {
+                    // Enviar un mensaje normal si no es '/saturar' ni '/detener'
+                    const mensajeConNombre = `${nombreUsuario}: ${mensaje}`;
+                    const buffer = Buffer.from(mensajeConNombre);
+
+                    // Enviar el mensaje al servidor
+                    client.send(buffer, SERVER_PORT, ip.trim(), (err) => {
+                        if (err) console.log('Error al enviar:', err.message);
+                    });
+
+                    client.once('message', (respuesta) => {
+                        console.log(`Respuesta del servidor: ${respuesta.toString()}`);
+                    });
                 }
-
-                // Enviar un mensaje normal si no es '/saturar'
-                const mensajeConNombre = `${nombreUsuario}: ${mensaje}`;
-                const buffer = Buffer.from(mensajeConNombre);
-
-                // Enviar el mensaje al servidor
-                client.send(buffer, SERVER_PORT, ip.trim(), (err) => {
-                    if (err) console.log('Error al enviar:', err.message);
-                });
-
-                client.once('message', (respuesta) => {
-                    console.log(`Respuesta del servidor: ${respuesta.toString()}`);
-                    enviarMensaje();
-                });
+                // Continuar preguntando por nuevos mensajes
+                enviarMensaje();
             });
         }
-
-        // Detener la saturación si el cliente lo solicita
-        rl.question('Escribe "/detener" para detener la saturación: ', (comandoDetener) => {
-            if (comandoDetener.toLowerCase() === '/detener' && saturando) {
-                clearInterval(saturarInterval);
-                saturando = false;
-                console.log("Saturación detenida.");
-                enviarMensaje();
-            } else {
-                // Si no se detuvo, seguir esperando mensajes
-                enviarMensaje();
-            }
-        });
 
         // Iniciar el proceso de envío de mensajes
         enviarMensaje();
