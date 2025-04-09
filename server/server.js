@@ -8,6 +8,8 @@ const os = require('os');
 
 const server = dgram.createSocket('udp4');
 
+const clientesConectados = {}; // Para rastrear a los clientes y su tiempo de último mensaje
+
 function getLocalIP() {
     const interfaces = os.networkInterfaces();
     let preferida = null;
@@ -38,17 +40,27 @@ function getLocalIP() {
     return preferida || 'localhost';
 }
 
-
 server.on('listening', () => {
     const address = server.address();
     console.log(`Servidor UDP escuchando en IP: ${getLocalIP()} puerto: ${address.port}`);
 });
 
 server.on('message', (msg, rinfo) => {
-    console.log(`Mensaje de ${rinfo.address}:${rinfo.port} -> ${msg}`);
+    const cliente = `${rinfo.address}:${rinfo.port}`;
+    
+    // Si es la primera vez que recibimos un mensaje de este cliente, imprimir que se conectó
+    if (!clientesConectados[cliente]) {
+        console.log(`Cliente conectado: ${cliente}`);
+        clientesConectados[cliente] = Date.now(); // Registrar el tiempo de la última conexión
+    }
+
+    // Actualizar el tiempo de última actividad del cliente
+    clientesConectados[cliente] = Date.now();
+
+    console.log(`Mensaje de ${cliente} -> ${msg}`);
     
     const respuesta = `Servidor recibió tu mensaje: ${msg}`;
     server.send(respuesta, rinfo.port, rinfo.address);
 });
 
-server.bind(5051); // Escuchar en el puerto 5050
+server.bind(5051); // Escuchar en el puerto 5051

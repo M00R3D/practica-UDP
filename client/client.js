@@ -1,4 +1,3 @@
-// cliente_udp.js
 const dgram = require('dgram');
 const readline = require('readline');
 
@@ -15,6 +14,14 @@ let mensajesPerdidos = 0; // Contador de mensajes perdidos
 
 rl.question('Ingresa tu nombre de usuario: ', (nombreUsuario) => {
     rl.question('Ingresa la IP del servidor: ', (ip) => {
+
+        // Enviar un mensaje vacío después de recibir la IP para establecer la conexión
+        const mensajeConNombre = `${nombreUsuario}: Conexión establecida`;
+        const buffer = Buffer.from(mensajeConNombre);
+        client.send(buffer, SERVER_PORT, ip.trim(), (err) => {
+            if (err) console.log('Error al enviar:', err.message);
+            console.log("Conexión establecida con el servidor.");
+        });
 
         function enviarMensaje() {
             rl.question('Escribe un mensaje (o "/salir" para terminar, "/saturar" para iniciar saturación): ', (mensaje) => {
